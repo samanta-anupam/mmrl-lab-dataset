@@ -1,12 +1,14 @@
 package com;
 
+import org.json.JSONObject;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class Main {
+public class RetrieveImageUrlClass {
 	private static String FILENAME = "";
-	private static String OUT_FILENAME = "out";
+	private static String OUT_FILENAME = "image_url";
 
 	public static void main(String[] args) {
 
@@ -21,29 +23,28 @@ public class Main {
 		try {
 
 			fr = new FileReader(FILENAME);
-			br = new BufferedReader(fr);
+            br = new BufferedReader(fr);
 
 			String sCurrentLine;
 
-			br = new BufferedReader(new FileReader(FILENAME));
 			fw = new FileWriter(OUT_FILENAME+"_"+FILENAME);
 			bw = new BufferedWriter(fw);
-			bw.write("[");
 
 			while ((sCurrentLine = br.readLine()) != null) {
-				String[] array = sCurrentLine.split(" ");
+				String[] array = sCurrentLine.split("/");
 				System.out.print(count++);
 				try {
-					bw.write(sendGet(array[0], args[1]) + ",");
+					bw.write(array[array.length-2]+","+ retrievePhotoUrl(array[array.length-1], args[1]));
+					bw.newLine();
 				} catch (Exception e) {
-					System.err.println("Photo doesnt exist");
+				    // Error when either not getting response, or either the image cannot be downloaded because of user
+                    // restrictions.
+					System.err.println("Error:-1");
 					e.printStackTrace();
 				}
 			}
-			bw.write("]");
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			System.err.println("File doesnt exist");
 			e.printStackTrace();
 		}  finally {
@@ -70,13 +71,12 @@ public class Main {
 		}
 	}
 
-	private static String sendGet(String photoId, String api_key)
+	private static String retrievePhotoUrl(String photoId, String api_key)
 			throws Exception {
 		final String USER_AGENT = "Mozilla/5.0";
-		// https://api.flickr.com/services/rest/?method=flickr.photos.getInfo&api_key=bc8f6ae315cbf3406db96933ddb26c4a&photo_id=3330096285&format=json&api_sig=289cd0612f1ca264cc31d94cf729cb4f
-		// https://api.flickr.com/services/rest/?method=flickr.photos.getInfo&api_key=0767b9908612af193b445355d1a16f68&photo_id=3330096285&format=json&nojsoncallback=1
-		String url = " https://api.flickr.com/services/rest/?"
-				+ "method=flickr.photos.getInfo&api_key=" + api_key
+        // https://api.flickr.com/services/rest/?method=flickr.photos.getSizes&api_key=e12f189dcfbb0b04ec73d261e3fb64df&photo_id=404831301&format=json&nojsoncallback=1&api_sig=ad52b34a91167347e6669074e1dc47fa
+    	String url = " https://api.flickr.com/services/rest/?"
+				+ "method=flickr.photos.getSizes&api_key=" + api_key
 				+ "&photo_id=" + photoId + "&format=json&nojsoncallback=1";
 
 		URL obj = new URL(url);
@@ -103,7 +103,20 @@ public class Main {
 		in.close();
 
 		// print result
-		return response.toString();
+        JSONObject responseObject = new JSONObject(response.toString());
+        System.out.println(responseObject.toString());
+        JSONObject sizesObject = responseObject.getJSONObject("sizes");
+        String imageFarmUrl="";
+        if(responseObject.has("stat") && responseObject.getString("stat").equals("ok")) {
+            int canDownload = sizesObject.getInt("candownload");
+            int len = sizesObject.getJSONArray("size").length();
+            if (canDownload==0) {
+                JSONObject image = sizesObject.getJSONArray("size").getJSONObject(len-1);
+                imageFarmUrl = image.getString("source");
+                imageFarmUrl.replaceAll("\\\\","");
+            }
+        }
+		return imageFarmUrl;
 
 	}
 }
