@@ -34,7 +34,8 @@ public class RetrieveImageUrlClass {
 				String[] array = sCurrentLine.split("/");
 				System.out.print(count++);
 				try {
-					bw.write(array[array.length-2]+","+ retrievePhotoUrl(array[array.length-1], args[1]));
+					bw.write(array[array.length-2]+","+ array[array.length-1]+","+
+                            retrievePhotoUrl(array[array.length-1], args[1]));
 					bw.newLine();
 				} catch (Exception e) {
 				    // Error when either not getting response, or either the image cannot be downloaded because of user
